@@ -1,6 +1,7 @@
 package com.nts.firstMicroService;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -19,28 +20,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerAdvice
 @Component
 public class GlobalExceptionHandler {
-    @ExceptionHandler
-    @ResponseBody
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map handle(MethodArgumentNotValidException exception) {
-        return error(exception.getBindingResult().getFieldErrors()
-                .stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.toList()));
-    }
+	@ExceptionHandler
+	@ResponseBody
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public Response handle(MethodArgumentNotValidException exception) {
+		List<String> errorMessages = (exception.getBindingResult().getFieldErrors().stream()
+				.map(FieldError::getDefaultMessage).collect(Collectors.toList()));
+		return new Response().builder().status("ERROR").statusMessages(errorMessages).build();
+	}
 
+	@ExceptionHandler
+	@ResponseBody
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public Response handle(ConstraintViolationException exception) {
+		List<String> errorMessages = (exception.getConstraintViolations().stream()
+				.map((cv)->{String s = cv.getPropertyPath().toString(); return s.concat(cv.getMessage());})
+				.collect(Collectors.toList()));
+		return new Response().builder().status("ERROR").statusMessages(errorMessages).build();
+	}
 
-    @ExceptionHandler
-    @ResponseBody
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map handle(ConstraintViolationException exception) {
-        return error(exception.getConstraintViolations()
-                .stream()
-                .map(ConstraintViolation::getMessage)
-                .collect(Collectors.toList()));
-    }
-
-    private Map error(Object message) {
-        return Collections.singletonMap("error", message);
-    }
 }
